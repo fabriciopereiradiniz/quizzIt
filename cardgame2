@@ -1,0 +1,298 @@
+import json
+import random
+from PyQt5 import QtCore
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QDesktopWidget, QWidget, QLabel, QApplication, QMainWindow, QListWidget, QMessageBox, QInputDialog, QVBoxLayout, QDialog, QLineEdit, QPushButton
+from PyQt5.QtGui import QIcon, QFontDatabase
+class Card:
+    def __init__(self, question, answer):
+        self.question = question
+        self.answer = answer
+
+class CardWindow(QMainWindow):
+
+    def mousePressEvent(self, event):
+            if self.showingAnswer:
+                try:
+                    self.current_card = next(self.cards)
+                    self.questionLabel.setText(self.current_card.question)
+                    self.answerLabel.clear()
+                except StopIteration:
+                    self.close()
+                self.showingAnswer = False
+            else:
+                self.answerLabel.setText(self.current_card.answer)
+                self.showingAnswer = True
+                
+    def __init__(self, cards):
+        super(CardWindow, self).__init__()
+        self.cards = iter(cards)  # Convert the list to an iterator
+        self.showingAnswer = False  # Initialize showingAnswer
+        self.clickCount = 0  # Initialize click counter
+        self.current_color = None  # Initialize current color
+
+        # Initialize centralWidget and questionLabel before calling nextCard
+        self.centralWidget = QWidget(self)
+        self.setCentralWidget(self.centralWidget)
+        self.questionLabel = QLabel(self.centralWidget)
+        self.count = 0
+        self.nextCard()  # Initialize the first card
+        self.initUI()
+
+    def mousePressEvent(self, event):
+        self.clickCount += 1  # Increment click counter
+        if self.showingAnswer:
+            try:
+                self.current_card = next(self.cards)
+                self.questionLabel.setText(self.current_card.question)
+                self.answerLabel.clear()
+            except StopIteration:
+                self.close()
+            self.showingAnswer = False
+        else:
+            self.answerLabel.setText(self.current_card.answer)
+            self.showingAnswer = True
+
+        if self.clickCount % 2 == 0:  # If it's the second click
+            self.changeBackgroundColor()  # Change the background color
+
+    def changeBackgroundColor(self):
+        # Choose a random background color
+        colors = ['#ddc0ff', '#ed714b', '#f5f378']
+        if self.current_color:
+            colors.remove(self.current_color)  # Remove the current color from the list
+        color = random.choice(colors)  # Choose a new color
+        self.current_color = color  # Update the current color
+        self.centralWidget.setStyleSheet(f"background-color: {self.current_color};")  # Apply the color to centralWidget
+
+
+    def nextCard(self):
+        try:
+            self.current_card = next(self.cards)
+        except StopIteration:
+            self.current_card = None  # No more cards
+
+
+    def initUI(self):
+        self.setGeometry(200, 200, 600, 300)
+        self.setWindowTitle('Card Window')
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+        # Create a central widget
+        self.centralWidget = QWidget(self)
+        self.setCentralWidget(self.centralWidget)
+        self.changeBackgroundColor()
+        
+
+        self.questionLabel = QLabel(self.current_card.question, self.centralWidget)
+        self.questionLabel.setGeometry(50, 50, 500, 100)
+    
+
+       
+        font_family = 'Courier New'  
+
+        # Set the font in the stylesheet
+        self.questionLabel.setStyleSheet(f"""
+            QLabel {{
+                color: #181414;
+                font-size: 15px;
+                margin: 0px;
+                background: transparent;
+                font-family: '{font_family}';
+            }}
+        """)
+        self.questionLabel.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.answerLabel = QLabel(self.centralWidget)
+        self.answerLabel.setGeometry(50, 150, 500, 100)
+        self.answerLabel.setStyleSheet("QLabel {color : #181414; margin: 0px; background: transparent; font-family: 'Courier New';}")
+        self.answerLabel.setAlignment(QtCore.Qt.AlignCenter)
+
+class CardGame(QMainWindow):
+    def __init__(self):
+        super(CardGame, self).__init__()
+        self.cards = []
+        self.initUI()
+
+        self.cardList = QListWidget(self)
+        self.cardList.setGeometry(50, 50, 500, 200)
+        self.cardList.setStyleSheet("""
+            QListWidget {
+                background-color: #2e2f2e;
+                color: #fefeff;
+                font-size: 14px;
+                font-family: 'Courier New';
+                border-radius: 10px;
+            }
+            QListWidget::item:selected {
+                border-radius: 10px;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #9c9c9c;
+                width: 15px;
+                margin: 15px 0 15px 0;
+                border-radius: 7px;
+            }
+            QListWidget::item:hover {
+                background-color: #242424; 
+            }
+            QScrollBar::handle:vertical {
+                background: #5d5d5d;
+                min-height: 20px;
+                border-radius: 7px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+            }
+        """)
+        self.setWindowIcon(QIcon('icon.png'))
+        self.loadCards()
+        self.updateCardList()
+        self.setStyleSheet("background-color: #181414;")
+        
+    # ... rest of your methods ...
+
+
+    def updateCardList(self):
+        self.cardList.clear()
+        for card in self.cards:
+            self.cardList.addItem(card.question)
+
+    def initUI(self):
+        self.setGeometry(200, 200, 600, 300)
+        self.setWindowTitle('Card Game')
+        self.setFixedSize(600, 300)  # Make the window non-resizable
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+        self.addButton = QPushButton(self)
+        self.addButton.setText("Add Card")
+        self.addButton.clicked.connect(self.addCard)
+        self.addButton.move(90, 260)
+        self.addButton.setStyleSheet("""
+    QPushButton {
+        color: #181414;;
+        border-radius: 10px;
+        background-color: #f5f378;
+    }
+""")
+
+        self.editButton = QPushButton(self)
+        self.editButton.setText("Edit Card")
+        self.editButton.clicked.connect(self.editCard)
+        self.editButton.move(200, 260)
+        self.editButton.setStyleSheet("""
+    QPushButton {
+        color: #181414;;
+        border-radius: 10px;
+        background-color: #e0c4fc;
+    }
+""")
+
+        self.deleteButton = QPushButton(self)
+        self.deleteButton.setText("Delete Card")
+        self.deleteButton.clicked.connect(self.deleteCard)
+        self.deleteButton.move(310, 260)
+        self.deleteButton.setStyleSheet("""
+    QPushButton {
+        color: #181414;;
+        border-radius: 10px;
+        background-color: #f0744c;
+    }
+""")
+
+        self.playButton = QPushButton(self)
+        self.playButton.setText("Play")
+        self.playButton.clicked.connect(self.play)
+        self.playButton.move(420, 260)
+        self.playButton.setStyleSheet("""
+    QPushButton {
+        color: #181414;;
+        border-radius: 10px;
+        background-color: #fefeff;
+    }
+""")
+
+    def addCard(self):
+        dialog = CardDialog()
+        if dialog.exec():
+            question = dialog.questionEdit.text()
+            answer = dialog.answerEdit.text()
+            self.cards.append(Card(question, answer))
+            self.updateCardList()
+            self.saveCards();
+
+    def deleteCard(self):
+        row = self.cardList.currentRow()
+        if row != -1:
+            confirm_box = QMessageBox()
+            confirm_box.setIcon(QMessageBox.Question)
+            confirm_box.setWindowTitle("Delete Card")
+            confirm_box.setText("Are you sure you want to delete this card?")
+            confirm_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            confirm_box.setDefaultButton(QMessageBox.No)
+            response = confirm_box.exec_()
+
+            if response == QMessageBox.Yes:
+                del self.cards[row]
+                self.updateCardList()
+                self.saveCards()
+
+    def editCard(self):
+        row = self.cardList.currentRow()
+        if row != -1:
+            dialog = CardDialog(self.cards[row].question, self.cards[row].answer)
+            if dialog.exec():
+                question = dialog.questionEdit.text()
+                answer = dialog.answerEdit.text()
+                self.cards[row] = Card(question, answer)
+                self.updateCardList()
+                self.saveCards();
+
+    def play(self):
+        if not self.cards:
+            QMessageBox.information(self, 'Info', 'No cards to play.')
+            return
+        random.shuffle(self.cards)
+        self.cardWindow = CardWindow(self.cards)
+        self.cardWindow.show()
+
+    def saveCards(self):
+        with open('cards.json', 'w') as f:
+            json.dump([card.__dict__ for card in self.cards], f)
+
+    def loadCards(self):
+        try:
+            with open('cards.json', 'r') as f:
+                self.cards = [Card(**card) for card in json.load(f)]
+        except FileNotFoundError:
+            pass
+
+class CardDialog(QDialog):
+    def __init__(self, question='', answer=''):
+        super(CardDialog, self).__init__()
+        self.questionEdit = QLineEdit(question)
+        self.answerEdit = QLineEdit(answer)
+        self.okButton = QPushButton('OK')
+        self.okButton.clicked.connect(self.accept)
+        layout = QVBoxLayout()
+        layout.addWidget(self.questionEdit)
+        layout.addWidget(self.answerEdit)
+        layout.addWidget(self.okButton)
+        self.setLayout(layout)
+
+def main():
+    app = QApplication([])
+    window = CardGame()
+    window.show()
+    app.exec_()
+
+if __name__ == "__main__":
+    main()        
